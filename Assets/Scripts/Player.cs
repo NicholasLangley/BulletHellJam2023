@@ -69,6 +69,7 @@ public class Player : MonoBehaviour
 
     IEnumerator move(KeyCode nextDir)
     {
+        GetComponent<CircleCollider2D>().radius = 0.1f; 
         _nextPos = transform.localPosition;
         switch (nextDir)
         {
@@ -92,6 +93,7 @@ public class Player : MonoBehaviour
             transform.localPosition = Vector2.MoveTowards(transform.localPosition, _nextPos, Time.deltaTime * _speed);
             yield return null;
         }
+        GetComponent<CircleCollider2D>().radius = 0.35f;
     }
 
 }

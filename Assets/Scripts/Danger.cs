@@ -24,4 +24,10 @@ public abstract class Danger : MonoBehaviour
     {
         dir = d;
     }
+
+    public void increaseScore()
+    {
+        GameObject.FindObjectOfType<GameController>().increaseScore(1);
+        Destroy(gameObject);
+    }
 }

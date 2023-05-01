@@ -18,7 +18,7 @@ public class Laser : Danger
         _age += Time.deltaTime;
         if (_age >= 1f)
         {
-            Destroy(gameObject);
+            increaseScore();
         }
     }
 }

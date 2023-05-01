@@ -22,23 +22,23 @@ public class Boulder : Danger
             nextPos.y += _boulderSpeed;
             if (nextPos.y >= 12)
             {
-                Destroy(gameObject);
+                increaseScore();
             }
         }
         else if (dir == direction.Down)
         {
             nextPos.y -= _boulderSpeed;
-            if (nextPos.y <= -12)
+            if (nextPos.y <= -3)
             {
-                Destroy(gameObject);
+                increaseScore();
             }
         }
         else if (dir == direction.Left)
         {
             nextPos.x -= _boulderSpeed;
-            if (nextPos.x <= -12)
+            if (nextPos.x <= -3)
             {
-                Destroy(gameObject);
+                increaseScore();
             }
         }
         else
@@ -46,7 +46,7 @@ public class Boulder : Danger
             nextPos.x += _boulderSpeed;
             if (nextPos.x >= 12)
             {
-                Destroy(gameObject);
+                increaseScore();
             }
         }
         transform.localPosition = nextPos;

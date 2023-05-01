@@ -13,6 +13,14 @@ public class WeaponManager : MonoBehaviour
 
     enum weaponSide {Top, Bottom, Left, Right}
 
+    enum waveType {OneSide,
+        OppositeSides,
+        Perpendicular, 
+        ThreeSides,
+        FourSides,
+        OneSideSpam,
+        Count}
+
     [SerializeField]
     Spawner.weapon weaponMode = Spawner.weapon.boulder;
 
@@ -24,73 +32,102 @@ public class WeaponManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            StartCoroutine(WaveSpamRandomSide(10, 0.5f));
-        }
+
     }
 
     ////////////////////////////////////////////////////////////
     ///attack decision logic?
+    //////
+    ////For now at least just random
+    ///
+    IEnumerator randomWaveGenerator()
+    {
+        while (true)
+        {
+            int waveCount = Random.Range(1, 6);
+            float betweenWaveDelay = Random.Range(0.6f, 1f);
+            float beforeNextAttackDelay = Random.Range(0.0f, 1.0f);
+            float chargeTime = Random.Range(0.5f, 1.0f);
+            switch (generateRandomWaveType())
+            {
+                case waveType.OneSide:
+                    yield return StartCoroutine(WavesOneSide(generateRandomWaveAmountArray(waveCount), betweenWaveDelay, chargeTime));
+                    break;
+                case waveType.OppositeSides:
+                    yield return StartCoroutine(WavesOppositeSides(generateRandomWaveAmountArray(waveCount), betweenWaveDelay, chargeTime));
+                    break;
+                case waveType.Perpendicular:
+                    yield return StartCoroutine(WavesPerpendicularSides(generateRandomWaveAmountArray(waveCount), generateRandomWaveAmountArray(waveCount),  betweenWaveDelay, chargeTime));
+                    break;
+                case waveType.ThreeSides:
+                    yield return StartCoroutine(WavesThreeSides(generateRandomWaveAmountArray(waveCount), generateRandomWaveAmountArray(waveCount), betweenWaveDelay, chargeTime));
+                    break;
+                case waveType.FourSides:
+                    yield return StartCoroutine(WavesFourSides(generateRandomWaveAmountArray(waveCount), generateRandomWaveAmountArray(waveCount), generateRandomWaveAmountArray(waveCount), generateRandomWaveAmountArray(waveCount), betweenWaveDelay, chargeTime));
+                    break;
+                case waveType.OneSideSpam:
+                    yield return StartCoroutine(WaveSpamRandomSide(waveCount, betweenWaveDelay / 6f, chargeTime));
+                    break;
+            }
+            yield return new WaitForSeconds(beforeNextAttackDelay + chargeTime);
+        }
+        yield return null;
+    }
 
+    //helper function to return a random wave type enum
+    waveType generateRandomWaveType()
+    {
+        return (waveType)Random.Range(0, (int)waveType.Count);
+    }
 
+    int[] generateRandomWaveAmountArray(int waveCount)
+    {
+        int[] waveAmountArray = new int[waveCount];
+        for(int i = 0; i < waveCount; i++)
+        {
+            waveAmountArray[i] = Random.Range(1, 6);
+        }
+        return waveAmountArray;
+    }
 
+    //starts firing of coporocess
+    public void startFiring()
+    {
+        StartCoroutine(randomWaveGenerator());
+    }
 
     /////////////////////////////////////////////////////////////
     ///Coprocesses to spawn specific attacks
     ///
-    /// Single wave of shots from random side
-    IEnumerator WaveSingleOneSide(int amount)
-    {
-        weaponSide ws = chooseSingleSide();
-        fireOneSide(getSide(ws), amount);
-        yield return null;
-    }
 
-    //multiple successive waves from a single side
-    IEnumerator WavesMultipleOneSide(int[] amounts, float delay)
+
+    //wave(s) from a single side
+    IEnumerator WavesOneSide(int[] amounts, float delay, float chargeTime)
     {
         weaponSide ws = chooseSingleSide();
         foreach (int i in amounts)
         {
-            fireOneSide(getSide(ws), i);
+            fireOneSide(getSide(ws), i, chargeTime);
             yield return new WaitForSeconds(delay);
         }
         yield return null;
     }
 
-    //Single wave shooting from opposite sides
-    IEnumerator WaveSingleOppositeSides(int amount)
-    {
-        weaponSide ws = chooseSingleSide();
-        fireOppositeSides(getSide(ws), getOppositeSide(ws), amount);
-        yield return null;
-    }
-
-    //multiple successive waves from opposite sides
-    IEnumerator WavesMultipleOppositeSides(int[] amounts, float delay)
+    //wave(s) from opposite sides
+    IEnumerator WavesOppositeSides(int[] amounts, float delay, float chargeTime)
     {
         weaponSide ws = chooseSingleSide();
         foreach (int i in amounts)
         {
-            fireOppositeSides(getSide(ws), getOppositeSide(ws), i);
+            fireOppositeSides(getSide(ws), getOppositeSide(ws), i, chargeTime);
             yield return new WaitForSeconds(delay);
         }
         yield return null;
     }
 
-    //Single wave shooting from perpendicular sides
-    IEnumerator WaveSinglePerpendicularSides(int amount, int amountPerpendicular)
-    {
-        weaponSide ws = chooseSingleSide();
-        fireOneSide(getSide(ws), amount);
-        fireOneSide(getPerpendicularSide(ws), amountPerpendicular);
-        yield return null;
-    }
-
-    //multiple successive waves from perpendicular sides (note perpendicular side will flip randomly +/- 90 degrees)
+    //wave(s) from perpendicular sides (note perpendicular side will flip randomly +/- 90 degrees)
     //make sure amount arrays are same size
-    IEnumerator WavesMultiplePerpendicularSides(int[] amounts, int[] amountsPerpendicular, float delay)
+    IEnumerator WavesPerpendicularSides(int[] amounts, int[] amountsPerpendicular, float delay, float chargeTime)
     {
         if (amounts.Length == amountsPerpendicular.Length)
         {
@@ -98,8 +135,8 @@ public class WeaponManager : MonoBehaviour
             int amountPerpendicularIterator = 0;
             foreach (int i in amounts)
             {
-                fireOneSide(getSide(ws), i);
-                fireOneSide(getPerpendicularSide(ws), amountsPerpendicular[amountPerpendicularIterator]);
+                fireOneSide(getSide(ws), i, chargeTime);
+                fireOneSide(getPerpendicularSide(ws), amountsPerpendicular[amountPerpendicularIterator], chargeTime);
                 amountPerpendicularIterator++;
                 yield return new WaitForSeconds(delay);
             }            
@@ -107,18 +144,9 @@ public class WeaponManager : MonoBehaviour
         yield return null;
     }
 
-    //Single Wave from 3 sides simultaneously (main + opposite + perpendicular)
-    IEnumerator WaveSingleThreeSides(int amountOpposites, int amountPerpendicular)
-    {
-        weaponSide ws = chooseSingleSide();
-        fireOppositeSides(getSide(ws), getOppositeSide(ws), amountOpposites);
-        fireOneSide(getPerpendicularSide(ws), amountPerpendicular);
-        yield return null;
-    }
-
-    //multiple waves from 3 sides (main + opposite + perpendicular)
+    //wave(s) from 3 sides (main + opposite + perpendicular)
     //note: perpendicular side will flip randomly
-    IEnumerator WavesMultipleThreeSides(int[] amountsOpposite, int[] amountsPerpendicular, float delay)
+    IEnumerator WavesThreeSides(int[] amountsOpposite, int[] amountsPerpendicular, float delay, float chargeTime)
     {
         if (amountsOpposite.Length == amountsPerpendicular.Length)
         {
@@ -126,8 +154,8 @@ public class WeaponManager : MonoBehaviour
             int amountPerpendicularIterator = 0;
             foreach (int i in amountsOpposite)
             {
-                fireOppositeSides(getSide(ws), getOppositeSide(ws), i);
-                fireOneSide(getPerpendicularSide(ws), amountsPerpendicular[amountPerpendicularIterator]);
+                fireOppositeSides(getSide(ws), getOppositeSide(ws), i, chargeTime);
+                fireOneSide(getPerpendicularSide(ws), amountsPerpendicular[amountPerpendicularIterator], chargeTime);
                 amountPerpendicularIterator++;
                 yield return new WaitForSeconds(delay);
             }
@@ -135,40 +163,29 @@ public class WeaponManager : MonoBehaviour
         yield return null;
     }
 
-    //Single Wave from all 4 sides
-    IEnumerator WaveSingleFourSides(int amountTop, int amountBottom, int amountLeft, int amountRight)
-    {
-        fireOneSide(getSide(weaponSide.Top), amountTop);
-        fireOneSide(getSide(weaponSide.Bottom), amountBottom);
-        fireOneSide(getSide(weaponSide.Left), amountLeft);
-        fireOneSide(getSide(weaponSide.Right), amountRight);
-        yield return null;
-    }
-
-    //Multiple successive waves from every side at once
-    //multiple Waves from all 4 sides
-    IEnumerator WaveMultipleFourSides(int[] amountsTop, int[] amountsBottom, int[] amountsLeft, int[] amountsRight, float delay)
+    //Wave(s) from all 4 sides
+    IEnumerator WavesFourSides(int[] amountsTop, int[] amountsBottom, int[] amountsLeft, int[] amountsRight, float delay, float chargeTime)
     {
         if (amountsTop.Length == amountsBottom.Length && amountsBottom.Length == amountsLeft.Length && amountsLeft == amountsRight)
         {
             for (int i = 0; i < amountsTop.Length; i++)
             {
-                fireOneSide(getSide(weaponSide.Top), amountsTop[i]);
-                fireOneSide(getSide(weaponSide.Bottom), amountsBottom[i]);
-                fireOneSide(getSide(weaponSide.Left), amountsLeft[i]);
-                fireOneSide(getSide(weaponSide.Right), amountsRight[i]);
-                yield return new WaitForSeconds(delay); ;
+                fireOneSide(getSide(weaponSide.Top), amountsTop[i], chargeTime);
+                fireOneSide(getSide(weaponSide.Bottom), amountsBottom[i], chargeTime);
+                fireOneSide(getSide(weaponSide.Left), amountsLeft[i], chargeTime);
+                fireOneSide(getSide(weaponSide.Right), amountsRight[i], chargeTime);
+                yield return new WaitForSeconds(delay);
             }
         }
         yield return null;
     }
 
     //spams single weapon attacks from any side
-    IEnumerator WaveSpamRandomSide(int spamCount, float delay)
+    IEnumerator WaveSpamRandomSide(int spamCount, float delay, float chargeTime)
     {
         while (spamCount > 0)
         {
-            StartCoroutine(WaveSingleOneSide(1));
+            StartCoroutine(WavesOneSide(new int[1] { 1 }, 0.1f, chargeTime));
             spamCount--;
             yield return new WaitForSeconds(delay);
         }
@@ -184,16 +201,16 @@ public class WeaponManager : MonoBehaviour
     /////////////////////////////////////////////////////////////////////////////////////////////
     //main weapon firing functionality, coprocesses will activate these depending on need
     //This is the main firing function takes an array of weapon types and fires them for the given side
-    public void fireSpecificWeaponsOnSide(Spawner[] side, Spawner.weapon[] weaponsToFire)
+    public void fireSpecificWeaponsOnSide(Spawner[] side, Spawner.weapon[] weaponsToFire, float chargeTime)
     {
         for(int i = 0; i < side.Length; i++)
         {
-            side[i].spawnAttack(weaponsToFire[i]);
+            side[i].fireWeapon(weaponsToFire[i], chargeTime);
         }
     }
 
     //Logic to fire only one side of weapons, amount dictates number of weapon activations
-    public void fireOneSide(Spawner[] side, int amount)
+    public void fireOneSide(Spawner[] side, int amount, float chargeTime)
     {
         List<int> weaponsToFire = chooseRandomWeaponPositions(amount, side.Length);
         Spawner.weapon[] weaponArray = getBlankWeaponArray(side.Length);
@@ -201,11 +218,11 @@ public class WeaponManager : MonoBehaviour
         {
             weaponArray[pos] = getCurrentWeapon();
         }
-        fireSpecificWeaponsOnSide(side, weaponArray);
+        fireSpecificWeaponsOnSide(side, weaponArray, chargeTime);
     }
 
     //fire two sides simultaneously, amount is split randomly between the 2 (could all go to one side)
-    public void fireOppositeSides(Spawner[] side1, Spawner[] side2, int amount)
+    public void fireOppositeSides(Spawner[] side1, Spawner[] side2, int amount, float chargeTime)
     {
         List<int> weaponsToFire = chooseRandomWeaponPositions(amount, side1.Length);
         Spawner.weapon[] weaponArray1 = getBlankWeaponArray(side1.Length);
@@ -221,8 +238,8 @@ public class WeaponManager : MonoBehaviour
                 weaponArray2[pos] = getCurrentWeapon();
             } 
         }
-        fireSpecificWeaponsOnSide(side1, weaponArray1);
-        fireSpecificWeaponsOnSide(side2, weaponArray2);
+        fireSpecificWeaponsOnSide(side1, weaponArray1, chargeTime);
+        fireSpecificWeaponsOnSide(side2, weaponArray2, chargeTime);
     }
 
     //helper function to randomly select which weapon positions will fire
